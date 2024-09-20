@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, ops::Deref, thread::current};
 
 use indoc::indoc;
 
@@ -246,4 +246,104 @@ fn day4(scratch_cards: &str) -> i32 {
             }
         })
         .sum()
+}
+
+#[test]
+fn day5test() {
+    let seeds = [79, 14, 55, 13];
+
+    let alamanac = indoc!(
+        "
+    seed-to-soil map:
+    50 98 2
+    52 50 48
+
+    soil-to-fertilizer map:
+    0 15 37
+    37 52 2
+    39 0 15
+
+    fertilizer-to-water map:
+    49 53 8
+    0 11 42
+    42 0 7
+    57 7 4
+
+    water-to-light map:
+    88 18 7
+    18 25 70
+
+    light-to-temperature map:
+    45 77 23
+    81 45 19
+    68 64 13
+
+    temperature-to-humidity map:
+    0 69 1
+    1 0 69
+
+    humidity-to-location map:
+    60 56 37
+    56 93 4
+    "
+    );
+
+    assert_eq!(82, identify_location(alamanac, seeds[0]));
+    assert_eq!(43, identify_location(alamanac, seeds[1]));
+    assert_eq!(86, identify_location(alamanac, seeds[2]));
+    assert_eq!(35, identify_location(alamanac, seeds[3]));
+
+    assert_eq!(Some(35), day5(alamanac, &seeds));
+}
+
+fn identify_location(alamanac: &str, seed_nr: i32) -> i32 {
+    let mut current_nr = seed_nr;
+    let mut block_done_flag = false;
+
+    for line in alamanac.lines() {
+        let line = line.trim();
+
+        if line.is_empty() {
+            // new block reached
+            block_done_flag = false;
+            // skip empty lines
+            continue;
+        }
+
+        if block_done_flag {
+            // current block was already applied, continue to next block
+            continue;
+        };
+
+        if let Some(c) = line.chars().next() {
+            if !c.is_numeric() {
+                // skip map name at start of block
+                continue;
+            }
+        }
+
+        let range_delim: Vec<i32> = line.split(' ').filter_map(|seq| seq.parse().ok()).collect();
+
+        assert_eq!(
+            3,
+            range_delim.len(),
+            "line '{line}' resulted in unexpected range_delim {range_delim:?}"
+        );
+
+        let dest_min = range_delim[0];
+        let source_min = range_delim[1];
+        let source_max = range_delim[1] + range_delim[2];
+        if source_min <= current_nr && current_nr <= source_max {
+            current_nr += dest_min - source_min;
+        }
+    }
+
+    current_nr
+}
+
+fn day5(alamanac: &str, seed_numbers: &[i32]) -> Option<i32> {
+    seed_numbers
+        .iter()
+        .map(|seed: &i32| identify_location(alamanac, *seed))
+        .min()
 }
