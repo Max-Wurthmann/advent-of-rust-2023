@@ -301,40 +301,29 @@ fn identify_location(alamanac: &str, seed_nr: i32) -> i32 {
     let mut block_done_flag = false;
 
     for line in alamanac.lines() {
-        let line = line.trim();
+        let range_delim: Vec<i32> = line
+            .trim()
+            .split(' ')
+            .filter_map(|seq| seq.parse().ok())
+            .collect();
 
-        if line.is_empty() {
-            // new block reached
+        if range_delim.len() != 3 {
+            // not a block line
+            // new block started, reset flag
             block_done_flag = false;
-            // skip empty lines
             continue;
         }
 
         if block_done_flag {
-            // current block was already applied, continue to next block
             continue;
-        };
-
-        if let Some(c) = line.chars().next() {
-            if !c.is_numeric() {
-                // skip map name at start of block
-                continue;
-            }
         }
-
-        let range_delim: Vec<i32> = line.split(' ').filter_map(|seq| seq.parse().ok()).collect();
-
-        assert_eq!(
-            3,
-            range_delim.len(),
-            "line '{line}' resulted in unexpected range_delim {range_delim:?}"
-        );
 
         let dest_min = range_delim[0];
         let source_min = range_delim[1];
         let source_max = range_delim[1] + range_delim[2];
         if source_min <= current_nr && current_nr <= source_max {
             current_nr += dest_min - source_min;
+            block_done_flag = true;
         }
     }
 
